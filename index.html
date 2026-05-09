@@ -1,624 +1,357 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#1e3c72">
+
 <title>SSH AI Assistant</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+
 <style>
-/* ════════════════════════════════════════════
-   RESET & BASE
-════════════════════════════════════════════ */
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;background:transparent;font-family:'DM Sans',sans-serif}
 
-/* ════════════════════════════════════════════
-   FLOATING BUBBLE
-════════════════════════════════════════════ */
-.bubble{
-  position:fixed;bottom:22px;right:22px;z-index:9999;
-  width:58px;height:58px;border-radius:50%;
-  background:linear-gradient(135deg,#1e3c72,#2563eb);
-  box-shadow:0 6px 24px rgba(30,60,114,0.6);
-  border:none;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:transform .2s,box-shadow .2s;
-  animation:popIn .5s cubic-bezier(.34,1.56,.64,1) both;
-}
-.bubble:hover{transform:scale(1.1);box-shadow:0 10px 32px rgba(30,60,114,0.7)}
-.bubble:active{transform:scale(0.93)}
-.bubble::before{
-  content:'';position:absolute;inset:-5px;border-radius:50%;
-  border:2px solid rgba(59,130,246,0.4);
-  animation:pulse 2.5s ease-out infinite;
-}
-.bubble .ic{position:absolute;transition:opacity .2s,transform .22s}
-.bubble .ic svg{width:25px;height:25px}
-.bubble .ic-close{opacity:0;transform:rotate(-90deg)}
-.bubble.open .ic-chat{opacity:0;transform:rotate(90deg)}
-.bubble.open .ic-close{opacity:1;transform:rotate(0)}
-.notif{
-  position:absolute;top:-3px;right:-3px;
-  width:18px;height:18px;border-radius:50%;
-  background:#ef4444;border:2.5px solid #fff;
-  font-size:9px;font-weight:700;color:#fff;
-  display:flex;align-items:center;justify-content:center;
+body{
+margin:0;
+font-family:Arial;
+background:transparent;
 }
 
-/* ════════════════════════════════════════════
-   CHAT PANEL
-════════════════════════════════════════════ */
-.panel{
-  position:fixed;
-  bottom:90px;right:18px;
-  z-index:9998;
-  width:360px;
-  background:#0c1a35;
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:20px;
-  box-shadow:0 24px 80px rgba(0,0,0,0.7);
-  display:flex;flex-direction:column;
-  overflow:hidden;
-  transform:scale(0.88) translateY(18px);
-  transform-origin:bottom right;
-  opacity:0;pointer-events:none;
-  transition:transform .28s cubic-bezier(.34,1.1,.64,1),opacity .22s;
-}
-.panel.open{transform:scale(1) translateY(0);opacity:1;pointer-events:all}
-.panel::before{
-  content:'';position:absolute;inset:0;
-  background:
-    linear-gradient(rgba(59,130,246,0.05) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(59,130,246,0.05) 1px,transparent 1px);
-  background-size:28px 28px;pointer-events:none;z-index:0;
-}
-.pglow{
-  position:absolute;width:200px;height:200px;border-radius:50%;
-  background:rgba(29,78,216,0.18);filter:blur(60px);
-  top:-60px;left:-40px;pointer-events:none;z-index:0;
+#chatButton{
+
+position:fixed;
+bottom:20px;
+right:20px;
+
+width:65px;
+height:65px;
+
+border-radius:50%;
+
+background:#0b57d0;
+
+display:flex;
+align-items:center;
+justify-content:center;
+
+font-size:30px;
+color:white;
+
+cursor:pointer;
+
+box-shadow:0 4px 20px rgba(0,0,0,0.3);
+
+z-index:9999;
+
 }
 
-/* ── HEADER ── */
-.ph{
-  position:relative;z-index:1;
-  padding:14px 16px 12px;
-  background:rgba(8,16,40,0.96);
-  border-bottom:1px solid rgba(255,255,255,0.07);
-  flex-shrink:0;
-}
-.ph-row{display:flex;align-items:center;gap:10px}
-.av{
-  width:38px;height:38px;border-radius:11px;flex-shrink:0;
-  background:linear-gradient(135deg,#1e3c72,#2563eb);
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 3px 10px rgba(37,99,235,0.4);
-}
-.av svg{width:19px;height:19px}
-.ph-name{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;color:#fff;letter-spacing:.03em}
-.ph-stat{font-size:10px;color:rgba(255,255,255,0.4);display:flex;align-items:center;gap:4px;margin-top:1px}
-.dot-live{width:5px;height:5px;border-radius:50%;background:#10b981;box-shadow:0 0 4px #10b981;animation:blink 2s infinite}
-.model-pill{
-  margin-left:auto;font-size:9px;padding:2px 8px;border-radius:20px;
-  background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.2);
-  color:#60a5fa;font-weight:600;white-space:nowrap;transition:all .3s;
-}
-.ph-sub{font-size:10.5px;color:rgba(255,255,255,0.26);margin-top:6px;line-height:1.45}
+#chatBox{
 
-/* ── MESSAGES ── */
-.msgs{
-  position:relative;z-index:1;
-  flex:1;overflow-y:auto;
-  padding:12px 12px 4px;
-  display:flex;flex-direction:column;gap:9px;
-  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.07) transparent;
-  -webkit-overflow-scrolling:touch;
-}
-.msgs::-webkit-scrollbar{width:3px}
-.msgs::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
+position:fixed;
+bottom:95px;
+right:20px;
 
-.msg{display:flex;gap:7px;animation:slideUp .28s ease both;max-width:94%}
-.msg.u{align-self:flex-end;flex-direction:row-reverse}
-.msg.b{align-self:flex-start}
-.mav{
-  width:26px;height:26px;border-radius:7px;flex-shrink:0;
-  background:linear-gradient(135deg,#1e3c72,#2563eb);
-  display:flex;align-items:center;justify-content:center;margin-top:2px;
-}
-.mav svg{width:13px;height:13px}
-.mbub{
-  padding:9px 12px;border-radius:13px;
-  font-size:13px;line-height:1.6;color:#fff;
-}
-.msg.b .mbub{
-  background:rgba(255,255,255,0.07);
-  border:1px solid rgba(255,255,255,0.08);
-  border-bottom-left-radius:3px;
-}
-.msg.u .mbub{
-  background:linear-gradient(135deg,#1e3c72,#2563eb);
-  border-bottom-right-radius:3px;
-  box-shadow:0 3px 12px rgba(30,60,114,0.35);
-}
-.mbub strong{color:#93c5fd;font-weight:700}
-.mbub em{color:rgba(255,255,255,0.65)}
-.mbub a{color:#60a5fa;text-decoration:underline;word-break:break-all}
-.mbub ul,.mbub ol{padding-left:16px;margin-top:4px}
-.mbub li{margin-bottom:2px}
-.mbub hr{border:none;border-top:1px solid rgba(255,255,255,0.1);margin:8px 0}
+width:360px;
+height:580px;
 
-/* source tag */
-.stag{
-  display:inline-flex;align-items:center;gap:3px;
-  font-size:9px;font-weight:600;padding:2px 7px;
-  border-radius:20px;margin-top:4px;letter-spacing:.04em;
-}
-.stag.site{background:rgba(16,185,129,0.12);color:#34d399;border:1px solid rgba(16,185,129,0.2)}
-.stag.web{background:rgba(245,158,11,0.1);color:#fbbf24;border:1px solid rgba(245,158,11,0.2)}
-.stag.err{background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2)}
-.stag.confirm{background:rgba(139,92,246,0.12);color:#c4b5fd;border:1px solid rgba(139,92,246,0.2)}
-.mtime{font-size:9px;color:rgba(255,255,255,0.18);margin-top:2px}
+background:white;
 
-/* confirm buttons */
-.confirm-row{display:flex;gap:7px;margin-top:8px;flex-wrap:wrap}
-.cbtn{
-  padding:6px 14px;border-radius:20px;border:none;cursor:pointer;
-  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;
-  transition:all .18s;
-}
-.cbtn.yes{background:linear-gradient(135deg,#1e3c72,#2563eb);color:#fff;box-shadow:0 3px 10px rgba(30,60,114,0.4)}
-.cbtn.yes:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(30,60,114,0.55)}
-.cbtn.no{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.12)}
-.cbtn.no:hover{background:rgba(255,255,255,0.14)}
+border-radius:20px;
 
-/* lang badge */
-.lang-badge{
-  display:inline-flex;align-items:center;gap:3px;
-  font-size:9px;padding:1px 6px;border-radius:10px;
-  background:rgba(139,92,246,0.12);color:#c4b5fd;
-  border:1px solid rgba(139,92,246,0.18);margin-top:3px;
+box-shadow:0 4px 30px rgba(0,0,0,0.2);
+
+display:none;
+flex-direction:column;
+
+overflow:hidden;
+
+z-index:9999;
+
 }
 
-/* typing */
-.typing-row{display:flex;gap:7px;align-self:flex-start;animation:slideUp .28s ease both}
-.tbub{
-  padding:11px 14px;
-  background:rgba(255,255,255,0.07);
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:13px;border-bottom-left-radius:3px;
-  display:flex;align-items:center;gap:5px;
-}
-.tbub span{
-  width:6px;height:6px;border-radius:50%;
-  background:rgba(255,255,255,0.4);
-  animation:typeDot 1.2s ease-in-out infinite;
-}
-.tbub span:nth-child(2){animation-delay:.2s}
-.tbub span:nth-child(3){animation-delay:.4s}
+#header{
 
-/* ── SUGGESTIONS ── */
-.sugs{
-  position:relative;z-index:1;
-  padding:0 12px 7px;
-  display:flex;gap:5px;flex-wrap:wrap;
-}
-.sg{
-  padding:4px 11px;border-radius:20px;
-  border:1px solid rgba(59,130,246,0.2);
-  background:rgba(59,130,246,0.07);color:#93c5fd;
-  font-family:'DM Sans',sans-serif;font-size:10.5px;font-weight:500;
-  cursor:pointer;transition:all .18s;white-space:nowrap;
-}
-.sg:hover,.sg:active{background:rgba(59,130,246,0.22);color:#fff}
+background:#0b57d0;
+color:white;
 
-/* ── INPUT ── */
-.inp-wrap{
-  position:relative;z-index:1;
-  padding:9px 11px 12px;
-  background:rgba(5,12,34,0.95);
-  border-top:1px solid rgba(255,255,255,0.07);
-  flex-shrink:0;
-}
-.inp-row{display:flex;gap:7px;align-items:flex-end}
-.inp{
-  flex:1;padding:10px 12px;
-  background:rgba(255,255,255,0.06);
-  border:1.5px solid rgba(255,255,255,0.1);
-  border-radius:12px;color:#fff;
-  font-family:'DM Sans',sans-serif;
-  font-size:16px; /* prevents iOS zoom */
-  outline:none;resize:none;
-  max-height:80px;min-height:40px;
-  transition:border-color .2s;line-height:1.4;
-}
-.inp::placeholder{color:rgba(255,255,255,0.22);font-size:13px}
-.inp:focus{border-color:#3b82f6;background:rgba(255,255,255,0.09)}
-.send{
-  width:40px;height:40px;border-radius:11px;border:none;
-  cursor:pointer;flex-shrink:0;
-  background:linear-gradient(135deg,#1e3c72,#2563eb);
-  display:flex;align-items:center;justify-content:center;
-  transition:all .18s;box-shadow:0 3px 12px rgba(30,60,114,0.5);
-}
-.send:hover{transform:scale(1.08);box-shadow:0 5px 18px rgba(30,60,114,0.65)}
-.send:disabled{opacity:.4;cursor:not-allowed;transform:none}
-.send svg{width:16px;height:16px}
-.inp-hint{
-  font-size:9.5px;color:rgba(255,255,255,0.16);
-  text-align:center;margin-top:6px;
-  display:flex;align-items:center;justify-content:center;gap:6px;
-}
-.inp-hint span{color:rgba(255,255,255,0.25)}
+padding:16px;
 
-/* ════════════════════════════════════════════
-   MOBILE: full screen panel
-════════════════════════════════════════════ */
-@media(max-width:480px){
-  .panel{
-    position:fixed;top:0;left:0;right:0;bottom:0;
-    width:100%;height:100% !important;
-    border-radius:0;border:none;
-  }
-  .bubble{bottom:18px;right:18px;width:54px;height:54px}
+font-size:18px;
+font-weight:bold;
+
 }
 
-/* ════════════════════════════════════════════
-   ANIMATIONS
-════════════════════════════════════════════ */
-@keyframes pulse{0%{transform:scale(1);opacity:.6}70%{transform:scale(1.38);opacity:0}100%{transform:scale(1.38);opacity:0}}
-@keyframes popIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.28}}
-@keyframes slideUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
-@keyframes typeDot{0%,60%,100%{transform:translateY(0);opacity:.28}30%{transform:translateY(-5px);opacity:1}}
+#messages{
+
+flex:1;
+
+overflow-y:auto;
+
+padding:15px;
+
+background:#f5f7fb;
+
+}
+
+.msg{
+
+margin-bottom:12px;
+padding:12px;
+
+border-radius:14px;
+
+line-height:1.5;
+
+white-space:pre-wrap;
+
+}
+
+.user{
+
+background:#dbe8ff;
+
+}
+
+.bot{
+
+background:white;
+
+}
+
+#inputArea{
+
+display:flex;
+
+padding:10px;
+
+border-top:1px solid #ddd;
+
+}
+
+#input{
+
+flex:1;
+
+padding:12px;
+
+border:1px solid #ccc;
+
+border-radius:10px;
+
+outline:none;
+
+}
+
+button{
+
+margin-left:8px;
+
+padding:12px 16px;
+
+border:none;
+
+border-radius:10px;
+
+background:#0b57d0;
+
+color:white;
+
+cursor:pointer;
+
+}
+
+.quickBtn{
+
+display:block;
+
+margin-top:10px;
+
+padding:10px;
+
+background:#0b57d0;
+
+color:white;
+
+text-align:center;
+
+border-radius:10px;
+
+cursor:pointer;
+
+}
+
+a{
+color:#0b57d0;
+font-weight:bold;
+}
+
 </style>
+
 </head>
+
 <body>
 
-<!-- ════ BUBBLE ════ -->
-<button class="bubble" id="bubble" onclick="toggleChat()">
-  <div class="notif" id="notif">1</div>
-  <span class="ic ic-chat">
-    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-    </svg>
-  </span>
-  <span class="ic ic-close">
-    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
-      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-    </svg>
-  </span>
+<div id="chatButton">🤖</div>
+
+<div id="chatBox">
+
+<div id="header">
+SSH AI Assistant
+</div>
+
+<div id="messages"></div>
+
+<div id="inputArea">
+
+<input
+id="input"
+placeholder="Ask anything..."
+>
+
+<button onclick="sendMessage()">
+Send
 </button>
 
-<!-- ════ PANEL ════ -->
-<div class="panel" id="panel">
-  <div class="pglow"></div>
+</div>
 
-  <!-- Header -->
-  <div class="ph">
-    <div class="ph-row">
-      <div class="av">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
-          <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/>
-          <path d="M12 8v4l3 3"/>
-        </svg>
-      </div>
-      <div>
-        <div class="ph-name">Sales Support AI</div>
-        <div class="ph-stat"><span class="dot-live"></span>Online · Multilingual</div>
-      </div>
-      <div class="model-pill" id="mpill">Ready</div>
-    </div>
-    <div class="ph-sub">Ask in any Indian language — I understand, translate &amp; reply 🇮🇳</div>
-  </div>
-
-  <!-- Messages -->
-  <div class="msgs" id="msgs"></div>
-
-  <!-- Suggestions -->
-  <div class="sugs" id="sugs">
-    <button class="sg" onclick="qs('Check PIN code serviceability for PL BL')">📍 PIN Check</button>
-    <button class="sg" onclick="qs('Which cities have HL LAP login support')">🏙️ HL/LAP Cities</button>
-    <button class="sg" onclick="qs('How to calculate EMI and loan eligibility')">💰 EMI Help</button>
-    <button class="sg" onclick="qs('Tell me about all alliance partners')">🤝 Partners</button>
-    <button class="sg" onclick="qs('What can you do')">✨ Capabilities</button>
-  </div>
-
-  <!-- Input -->
-  <div class="inp-wrap">
-    <div class="inp-row">
-      <textarea class="inp" id="inp"
-        placeholder="Type in Hindi, English, or any language…"
-        rows="1"
-        onkeydown="onKey(event)"
-        oninput="grow(this)"></textarea>
-      <button class="send" id="sendbtn" onclick="send()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="22" y1="2" x2="11" y2="13"/>
-          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-        </svg>
-      </button>
-    </div>
-    <div class="inp-hint">
-      <span>Powered by AI · Sales Support Hub</span>
-    </div>
-  </div>
 </div>
 
 <script>
-// ════════════════════════════════════════════════════════════
-//  CONFIG
-// ════════════════════════════════════════════════════════════
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxQSAsA1_tPuJ0BNc_u6GWxYMOON3D-r1_DgWftROAMH-FxSEJZx2iFBaasL9niTTGR/exec';
 
-// ════════════════════════════════════════════════════════════
-//  STATE
-// ════════════════════════════════════════════════════════════
-let isOpen    = false;
-let busy      = false;
-let history   = [];        // conversation turns
-let msgCount  = 0;
-let pendingWebSearch = null;  // stores query waiting for confirm
+const GAS_URL =
+"https://script.google.com/macros/s/AKfycbxQSAsA1_tPuJ0BNc_u6GWxYMOON3D-r1_DgWftROAMH-FxSEJZx2iFBaasL9niTTGR/exec";
 
-// ════════════════════════════════════════════════════════════
-//  PANEL HEIGHT (dynamic based on iframe/viewport)
-// ════════════════════════════════════════════════════════════
-function setHeight(){
-  const p = document.getElementById('panel');
-  if(window.innerWidth > 480){
-    p.style.height = Math.min(530, window.innerHeight - 106) + 'px';
-  }
-}
-setHeight();
-window.addEventListener('resize', setHeight);
+const messages =
+document.getElementById("messages");
 
-// ════════════════════════════════════════════════════════════
-//  OPEN / CLOSE
-// ════════════════════════════════════════════════════════════
-function toggleChat(){
-  isOpen = !isOpen;
-  document.getElementById('bubble').classList.toggle('open', isOpen);
-  document.getElementById('panel').classList.toggle('open', isOpen);
-  if(isOpen){
-    document.getElementById('notif').style.display = 'none';
-    if(msgCount === 0) setTimeout(showWelcome, 350);
-    setTimeout(()=> document.getElementById('inp').focus(), 420);
-  }
-}
+let pendingWebSearch = false;
 
-function showWelcome(){
-  addBot(
-    '👋 Hello! I\'m your **Sales Support AI**.\n\n' +
-    'I check this site\'s knowledge first. If I can\'t find it here, I\'ll ask before searching the web.\n\n' +
-    '🇮🇳 _I understand Hindi, Gujarati, Tamil, Telugu, Marathi, Kannada, Bengali and more — just type naturally!_\n\n' +
-    'What can I help you with?',
-    'site', ''
-  );
+document
+.getElementById("chatButton")
+.onclick = () => {
+
+const box =
+document.getElementById("chatBox");
+
+box.style.display =
+box.style.display === "flex"
+? "none"
+: "flex";
+
+};
+
+function addMessage(text,type){
+
+const div =
+document.createElement("div");
+
+div.className =
+"msg " + type;
+
+div.innerHTML =
+formatMessage(text);
+
+messages.appendChild(div);
+
+messages.scrollTop =
+messages.scrollHeight;
+
 }
 
-// ════════════════════════════════════════════════════════════
-//  QUICK SEND
-// ════════════════════════════════════════════════════════════
-function qs(text){
-  document.getElementById('inp').value = text;
-  hideSugs();
-  send();
-}
-function hideSugs(){ document.getElementById('sugs').style.display = 'none'; }
+function formatMessage(text){
 
-// ════════════════════════════════════════════════════════════
-//  INPUT HANDLERS
-// ════════════════════════════════════════════════════════════
-function onKey(e){
-  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); }
-}
-function grow(el){
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 80) + 'px';
+text = text.replace(
+/(https?:\/\/[^\s]+)/g,
+'<br><a href="$1" target="_blank">Open Link</a>'
+);
+
+return text
+.replace(/\n/g,"<br>");
+
 }
 
-// ════════════════════════════════════════════════════════════
-//  CONFIRMATION HANDLER (user clicked Yes/No to web search)
-// ════════════════════════════════════════════════════════════
-function confirmSearch(yes){
-  // Disable buttons
-  document.querySelectorAll('.cbtn').forEach(b => b.disabled = true);
+async function sendMessage(allowWeb=false){
 
-  if(!yes){
-    addBot('OK! Let me know if you have any other questions. 😊', 'site', '');
-    pendingWebSearch = null;
-    return;
-  }
+const input =
+document.getElementById("input");
 
-  // User said yes — send with web search flag
-  const query = pendingWebSearch;
-  pendingWebSearch = null;
-  addBot('Sure! Let me search the web for you…', 'site', '');
-  callBackend(query, true);
+const msg =
+input.value.trim();
+
+if(!msg) return;
+
+addMessage(msg,"user");
+
+input.value="";
+
+addMessage("⏳ Thinking...","bot");
+
+const botMsgs =
+document.querySelectorAll(".bot");
+
+const loading =
+botMsgs[botMsgs.length-1];
+
+try{
+
+const res =
+await fetch(GAS_URL,{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+
+message:msg,
+allowWeb:allowWeb
+
+})
+
+});
+
+const data =
+await res.json();
+
+loading.innerHTML =
+formatMessage(data.reply);
+
+if(data.needsConfirm){
+
+loading.innerHTML += `
+
+<div
+class="quickBtn"
+onclick="confirmWebSearch('${msg}')"
+>
+🌐 Yes, Search Web
+</div>
+
+`;
+
 }
 
-// ════════════════════════════════════════════════════════════
-//  MAIN SEND
-// ════════════════════════════════════════════════════════════
-async function send(){
-  const inp  = document.getElementById('inp');
-  const text = inp.value.trim();
-  if(!text || busy) return;
+}catch(err){
 
-  hideSugs();
-  addUser(text);
-  history.push({ role:'user', content:text });
-  inp.value = ''; inp.style.height = 'auto';
+loading.innerHTML =
+"⚠ Error connecting to AI.";
 
-  callBackend(text, false);
 }
 
-async function callBackend(text, allowWeb){
-  busy = true;
-  document.getElementById('sendbtn').disabled = true;
-  const typEl = showTyping();
-
-  try{
-    // Use GET to avoid CORS issues in Google Sites / GitHub Pages embed
-    const params = new URLSearchParams({
-      message:   text,
-      history:   JSON.stringify(history.slice(-6)),
-      allowWeb:  allowWeb ? '1' : '0'
-    });
-
-    const res = await fetch(GAS_URL + '?' + params.toString(), {
-      method: 'GET',
-      redirect: 'follow'
-    });
-
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    removeTyping(typEl);
-
-    if(data.status === 'success'){
-      const reply   = data.reply   || '(empty response)';
-      const source  = data.source  || 'ai';
-      const detLang = data.detectedLang || '';
-      const model   = data.model   || '';
-
-      // Update model pill
-      if(model){
-        const pill = document.getElementById('mpill');
-        pill.textContent = '✓ ' + model.split('/').pop().split(':')[0].substring(0,14);
-        setTimeout(()=> pill.textContent = 'Ready', 4000);
-      }
-
-      // Check if backend wants confirmation for web search
-      if(data.needsConfirm){
-        pendingWebSearch = text;
-        addBotWithConfirm(reply, detLang);
-      } else {
-        addBot(reply, source, detLang);
-        history.push({ role:'assistant', content: reply });
-      }
-
-    } else {
-      addBot('⚠️ ' + (data.reply || 'Something went wrong. Please try again.'), 'err', '');
-    }
-
-  } catch(err){
-    removeTyping(typEl);
-    addBot(
-      '⚠️ **Connection error**: ' + err.message +
-      '\n\nPlease ensure the Apps Script is deployed as **"Anyone"** with access.' +
-      '\n\n_Tip: Redeploy as a new version if this persists._',
-      'err', ''
-    );
-  }
-
-  busy = false;
-  document.getElementById('sendbtn').disabled = false;
 }
 
-// ════════════════════════════════════════════════════════════
-//  RENDER HELPERS
-// ════════════════════════════════════════════════════════════
-function addUser(text){
-  msgCount++;
-  const d = document.createElement('div');
-  d.className = 'msg u';
-  d.innerHTML = `<div class="mbub">${esc(text)}</div>`;
-  document.getElementById('msgs').appendChild(d);
-  scrollBottom();
+function confirmWebSearch(msg){
+
+document.getElementById("input").value =
+msg;
+
+sendMessage(true);
+
 }
 
-function addBot(text, source, detLang){
-  msgCount++;
-  const d   = document.createElement('div');
-  d.className = 'msg b';
-
-  const tagHtml =
-    source === 'site' ? '<span class="stag site">✅ From Site</span>' :
-    source === 'web'  ? '<span class="stag web">🌐 Web Search</span>' :
-    source === 'err'  ? '<span class="stag err">⚠ Error</span>'       :
-                        '<span class="stag web">🌐 AI Answer</span>';
-
-  const langHtml = (detLang && detLang !== 'en' && detLang !== 'english')
-    ? `<span class="lang-badge">🌐 ${detLang}</span>`
-    : '';
-
-  const t = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-
-  d.innerHTML = `
-    <div class="mav"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg></div>
-    <div>
-      <div class="mbub">${md(text)}</div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
-        ${tagHtml}${langHtml}
-        <span class="mtime">${t}</span>
-      </div>
-    </div>`;
-  document.getElementById('msgs').appendChild(d);
-  scrollBottom();
-}
-
-function addBotWithConfirm(text, detLang){
-  msgCount++;
-  const d   = document.createElement('div');
-  d.className = 'msg b';
-  const t = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-  const langHtml = (detLang && detLang !== 'en' && detLang !== 'english')
-    ? `<span class="lang-badge">🌐 ${detLang}</span>` : '';
-
-  d.innerHTML = `
-    <div class="mav"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg></div>
-    <div>
-      <div class="mbub">${md(text)}</div>
-      <div class="confirm-row">
-        <button class="cbtn yes" onclick="confirmSearch(true)">✅ Yes, search web</button>
-        <button class="cbtn no"  onclick="confirmSearch(false)">❌ No thanks</button>
-      </div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:4px">
-        <span class="stag confirm">🔍 Confirm needed</span>${langHtml}
-        <span class="mtime">${t}</span>
-      </div>
-    </div>`;
-  document.getElementById('msgs').appendChild(d);
-  scrollBottom();
-}
-
-function showTyping(){
-  const d = document.createElement('div');
-  d.className = 'typing-row';
-  d.innerHTML = `
-    <div class="mav"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg></div>
-    <div class="tbub"><span></span><span></span><span></span></div>`;
-  document.getElementById('msgs').appendChild(d);
-  scrollBottom();
-  return d;
-}
-function removeTyping(el){ if(el && el.parentNode) el.parentNode.removeChild(el); }
-function scrollBottom(){ const m=document.getElementById('msgs'); setTimeout(()=>m.scrollTop=m.scrollHeight,60); }
-
-// ════════════════════════════════════════════════════════════
-//  TEXT UTILS
-// ════════════════════════════════════════════════════════════
-function esc(t){
-  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-}
-
-function md(t){
-  return t
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    // Bold
-    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
-    // Italic
-    .replace(/\*(.*?)\*/g,'<em>$1</em>')
-    // Markdown links [text](url)
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1 ↗</a>')
-    // Bare URLs — avoid double-linking
-    .replace(/(?<!\()https?:\/\/[^\s<"]+/g, u => `<a href="${u}" target="_blank" rel="noopener">Open Link ↗</a>`)
-    // Horizontal rule
-    .replace(/^---$/gm,'<hr>')
-    // Bullet points
-    .replace(/^[•\-]\s(.+)$/gm,'<li>$1</li>')
-    // Newlines
-    .replace(/\n/g,'<br>');
-}
 </script>
+
 </body>
+
 </html>
